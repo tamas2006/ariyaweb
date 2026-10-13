@@ -103,6 +103,8 @@ function renderFilteredPosts() {
 
 function renderCardsToGrid(container, posts) {
   container.innerHTML = '';
+  const isAdmin = window.CookieManager && CookieManager.get('ariya_auth_session') === 'authenticated';
+
   posts.forEach(post => {
     const mediaUrl = AriyaDB.getMediaUrl(post);
     const dateFormatted = post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Archive';
@@ -123,6 +125,7 @@ function renderCardsToGrid(container, posts) {
         <p class="blog-card-desc">${escapeHtml(post.caption || '')}</p>
         <div class="blog-card-footer">
           <span class="blog-card-link">Read Reflection &rarr;</span>
+          ${isAdmin ? `<button class="admin-card-delete-post" data-delete-id="${post.id}" style="background: transparent; color: #e04747; border: 1px solid rgba(224,71,71,0.3); border-radius: 4px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">Delete</button>` : ''}
         </div>
       </div>
     `;
@@ -131,12 +134,39 @@ function renderCardsToGrid(container, posts) {
 }
 
 function attachPostCardListeners() {
+  // Post card opening
   document.querySelectorAll('[data-post-id], [data-read-id]').forEach(el => {
     el.addEventListener('click', (e) => {
+      // Don't open reader if clicking the delete button
+      if (e.target.closest('[data-delete-id]')) return;
       const postId = el.getAttribute('data-post-id') || el.getAttribute('data-read-id');
       const post = allBlogPosts.find(p => p.id === postId);
       if (post) {
         openReaderModal(post);
+      }
+    });
+  });
+
+  // Inline delete from blog cards (host only)
+  document.querySelectorAll('[data-delete-id]').forEach(delBtn => {
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = delBtn.getAttribute('data-delete-id');
+      if (!delBtn.classList.contains('confirming')) {
+        delBtn.classList.add('confirming');
+        delBtn.textContent = 'Sure?';
+        delBtn.style.background = '#e04747';
+        delBtn.style.color = '#fff';
+        setTimeout(() => {
+          delBtn.classList.remove('confirming');
+          delBtn.textContent = 'Delete';
+          delBtn.style.background = '';
+          delBtn.style.color = '#e04747';
+        }, 3000);
+      } else {
+        delBtn.textContent = '...';
+        await AriyaDB.deletePost(id);
+        await loadAndRenderPosts();
       }
     });
   });
@@ -228,6 +258,43 @@ function openReaderModal(post) {
 
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+
+  // Admin delete button inside full reader
+  const readerDeleteBtn = document.getElementById('readerDeleteBtn');
+  const isAdmin = window.CookieManager && CookieManager.get('ariya_auth_session') === 'authenticated';
+
+  if (readerDeleteBtn) {
+    if (isAdmin) {
+      readerDeleteBtn.style.display = 'inline-block';
+      readerDeleteBtn.textContent = 'Delete Post';
+      readerDeleteBtn.classList.remove('confirming');
+      readerDeleteBtn.style.background = '';
+      readerDeleteBtn.style.color = '';
+
+      readerDeleteBtn.onclick = async () => {
+        if (!readerDeleteBtn.classList.contains('confirming')) {
+          readerDeleteBtn.classList.add('confirming');
+          readerDeleteBtn.textContent = 'Confirm Delete?';
+          readerDeleteBtn.style.background = '#e04747';
+          readerDeleteBtn.style.color = '#fff';
+          setTimeout(() => {
+            readerDeleteBtn.classList.remove('confirming');
+            readerDeleteBtn.textContent = 'Delete Post';
+            readerDeleteBtn.style.background = '';
+            readerDeleteBtn.style.color = '';
+          }, 4000);
+        } else {
+          readerDeleteBtn.textContent = 'Deleting...';
+          await AriyaDB.deletePost(post.id);
+          modal.style.display = 'none';
+          document.body.style.overflow = '';
+          await loadAndRenderPosts();
+        }
+      };
+    } else {
+      readerDeleteBtn.style.display = 'none';
+    }
+  }
 }
 
 /* ==========================================================================

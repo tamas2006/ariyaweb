@@ -146,7 +146,28 @@ class AriyaDB {
     });
   }
 
+  static getDeletedIds() {
+    try {
+      return JSON.parse(localStorage.getItem('ariya_deleted_ids') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static addDeletedId(id) {
+    try {
+      const ids = this.getDeletedIds();
+      if (!ids.includes(id)) {
+        ids.push(id);
+        localStorage.setItem('ariya_deleted_ids', JSON.stringify(ids));
+      }
+    } catch (e) {}
+  }
+
   static async getAllPosts() {
+    const deletedIds = this.getDeletedIds();
+    const isSeeded = localStorage.getItem('ariya_db_seeded_v2');
+
     try {
       const db = await this.open();
       return new Promise((resolve, reject) => {
@@ -155,30 +176,36 @@ class AriyaDB {
         const req = store.getAll();
         req.onsuccess = async () => {
           let posts = req.result || [];
-          if (posts.length === 0) {
-            // Seed all defaults if empty
+
+          if (!isSeeded && posts.length === 0) {
+            localStorage.setItem('ariya_db_seeded_v2', 'true');
             await this.seedDefaults();
             const seeded = await this.getAllPosts();
             resolve(seeded);
             return;
           }
 
-          // Ensure default image posts exist if only videos were present
-          const hasImagePost = posts.some(p => p.type === 'image');
-          if (!hasImagePost) {
+          // First-time migration for default images if not seeded yet
+          if (!localStorage.getItem('ariya_images_seeded_v2')) {
+            localStorage.setItem('ariya_images_seeded_v2', 'true');
             await this.seedDefaultImages();
-            const updated = await this.getAllPosts();
-            resolve(updated);
-            return;
+            posts = await new Promise((res) => {
+              const tx2 = db.transaction(STORE_MEDIA, 'readonly');
+              const req2 = tx2.objectStore(STORE_MEDIA).getAll();
+              req2.onsuccess = () => res(req2.result || []);
+              req2.onerror = () => res(posts);
+            });
           }
 
-          resolve(posts);
+          // Filter out explicitly deleted posts
+          const activePosts = posts.filter(p => !deletedIds.includes(p.id));
+          resolve(activePosts);
         };
         req.onerror = () => reject(req.error);
       });
     } catch (e) {
-      console.warn('Falling back to default posts:', e);
-      return DEFAULT_POSTS;
+      console.warn('Falling back to filtered defaults:', e);
+      return DEFAULT_POSTS.filter(p => !deletedIds.includes(p.id));
     }
   }
 
@@ -187,7 +214,8 @@ class AriyaDB {
       const db = await this.open();
       const tx = db.transaction(STORE_MEDIA, 'readwrite');
       const store = tx.objectStore(STORE_MEDIA);
-      const imageDefaults = DEFAULT_POSTS.filter(p => p.type === 'image');
+      const deletedIds = this.getDeletedIds();
+      const imageDefaults = DEFAULT_POSTS.filter(p => p.type === 'image' && !deletedIds.includes(p.id));
       for (const post of imageDefaults) {
         store.put(post);
       }
@@ -201,8 +229,11 @@ class AriyaDB {
     const db = await this.open();
     const tx = db.transaction(STORE_MEDIA, 'readwrite');
     const store = tx.objectStore(STORE_MEDIA);
+    const deletedIds = this.getDeletedIds();
     for (const post of DEFAULT_POSTS) {
-      store.put(post);
+      if (!deletedIds.includes(post.id)) {
+        store.put(post);
+      }
     }
     return new Promise((resolve) => {
       tx.oncomplete = () => resolve();
@@ -210,6 +241,12 @@ class AriyaDB {
   }
 
   static async savePost(post) {
+    // If saving a post, remove its ID from deleted list if present
+    try {
+      const ids = this.getDeletedIds().filter(id => id !== post.id);
+      localStorage.setItem('ariya_deleted_ids', JSON.stringify(ids));
+    } catch (e) {}
+
     const db = await this.open();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_MEDIA, 'readwrite');
@@ -224,17 +261,26 @@ class AriyaDB {
   }
 
   static async deletePost(id) {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_MEDIA, 'readwrite');
-      const store = tx.objectStore(STORE_MEDIA);
-      const req = store.delete(id);
-      req.onsuccess = () => {
-        this.notifySync();
-        resolve(true);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    // 1. Record ID permanently in deleted list
+    this.addDeletedId(id);
+
+    // 2. Remove from IndexedDB store
+    try {
+      const db = await this.open();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_MEDIA, 'readwrite');
+        const store = tx.objectStore(STORE_MEDIA);
+        const req = store.delete(id);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (err) {
+      console.warn('IndexedDB delete error, but recorded in deleted list:', err);
+    }
+
+    // 3. Notify all open tabs to update immediately
+    this.notifySync();
+    return true;
   }
 
   static async setHeroVideo(id) {

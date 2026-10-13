@@ -136,11 +136,40 @@ function renderVideos(videos) {
       loadDashboardPosts();
     });
 
-    // Delete Event
-    card.querySelector('.btn-card-delete').addEventListener('click', async () => {
-      if (confirm(`Delete "${post.title}" permanently?`)) {
+    // Two-step inline delete (bulletproof, zero reliance on blocked window.confirm)
+    const deleteBtn = card.querySelector('.btn-card-delete');
+    let deleteTimer = null;
+
+    deleteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!deleteBtn.classList.contains('confirming')) {
+        deleteBtn.classList.add('confirming');
+        deleteBtn.textContent = 'Confirm Delete?';
+        deleteBtn.style.background = '#e04747';
+        deleteBtn.style.color = '#fff';
+        deleteBtn.style.borderColor = '#e04747';
+
+        deleteTimer = setTimeout(() => {
+          deleteBtn.classList.remove('confirming');
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.style.background = '';
+          deleteBtn.style.color = '';
+          deleteBtn.style.borderColor = '';
+        }, 4000);
+      } else {
+        clearTimeout(deleteTimer);
+        deleteBtn.textContent = 'Deleting...';
+        deleteBtn.disabled = true;
+
         await AriyaDB.deletePost(post.id);
-        loadDashboardPosts();
+
+        card.style.transition = 'all 0.25s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.92)';
+        setTimeout(() => {
+          card.remove();
+          loadDashboardPosts();
+        }, 250);
       }
     });
 
@@ -175,10 +204,40 @@ function renderImages(images) {
       </div>
     `;
 
-    card.querySelector('.btn-card-delete').addEventListener('click', async () => {
-      if (confirm(`Delete "${post.title}" permanently?`)) {
+    // Two-step inline delete
+    const deleteBtn = card.querySelector('.btn-card-delete');
+    let deleteTimer = null;
+
+    deleteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!deleteBtn.classList.contains('confirming')) {
+        deleteBtn.classList.add('confirming');
+        deleteBtn.textContent = 'Confirm Delete?';
+        deleteBtn.style.background = '#e04747';
+        deleteBtn.style.color = '#fff';
+        deleteBtn.style.borderColor = '#e04747';
+
+        deleteTimer = setTimeout(() => {
+          deleteBtn.classList.remove('confirming');
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.style.background = '';
+          deleteBtn.style.color = '';
+          deleteBtn.style.borderColor = '';
+        }, 4000);
+      } else {
+        clearTimeout(deleteTimer);
+        deleteBtn.textContent = 'Deleting...';
+        deleteBtn.disabled = true;
+
         await AriyaDB.deletePost(post.id);
-        loadDashboardPosts();
+
+        card.style.transition = 'all 0.25s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.92)';
+        setTimeout(() => {
+          card.remove();
+          loadDashboardPosts();
+        }, 250);
       }
     });
 
