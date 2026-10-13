@@ -1,0 +1,624 @@
+/* ==========================================================================
+   ariya.ex3 — Studio & Admin Panel Stylesheet
+   Pure White Typography • Dark Luxury Aesthetic • Mobile-First Responsive
+   ========================================================================== */
+
+:root {
+  --admin-bg: #0d0d0d;
+  --admin-surface: #161616;
+  --admin-surface-hover: #1f1f1f;
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-white: #ffffff;
+  --admin-white-70: rgba(255, 255, 255, 0.7);
+  --admin-white-40: rgba(255, 255, 255, 0.4);
+  --admin-accent: #ffffff;
+  --admin-danger: #e04747;
+  --admin-success: #3ecf8e;
+}
+
+body.admin-body {
+  background-color: var(--admin-bg);
+  color: var(--admin-white);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   1. PIN Login Gate
+   ========================================================================== */
+.login-gate-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #080808 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.login-emblem img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid var(--admin-border);
+  object-fit: cover;
+}
+
+.login-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 0.85rem;
+  color: var(--admin-white-70);
+  margin: 0;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-top: 0.5rem;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #000;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  text-align: center;
+  letter-spacing: 0.2em;
+}
+
+.input-wrap input:focus {
+  outline: none;
+  border-color: var(--admin-white);
+}
+
+.remember-cookie-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--admin-white-70);
+  cursor: pointer;
+  text-align: left;
+}
+
+.login-error {
+  font-size: 0.8rem;
+  color: var(--admin-danger);
+}
+
+.back-link {
+  font-size: 0.8rem;
+  color: var(--admin-white-40);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: #fff;
+}
+
+/* ==========================================================================
+   2. Studio Topbar
+   ========================================================================== */
+.admin-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.admin-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-logo {
+  font-family: var(--font-sans);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.studio-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: var(--admin-white-70);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Buttons */
+.admin-primary-btn {
+  background: var(--admin-white);
+  color: #000;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.admin-primary-btn:hover {
+  opacity: 0.9;
+}
+
+.admin-ghost-btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid var(--admin-border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.admin-ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-danger-btn {
+  background: transparent;
+  color: var(--admin-danger);
+  border: 1px solid rgba(224, 71, 71, 0.4);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.admin-danger-btn:hover {
+  background: rgba(224, 71, 71, 0.15);
+}
+
+/* ==========================================================================
+   3. Studio Navigation Tabs
+   ========================================================================== */
+.studio-tabs-nav {
+  display: flex;
+  gap: 8px;
+  padding: 1rem 2rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: transparent;
+  color: var(--admin-white-70);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: #fff;
+}
+
+.tab-btn.active {
+  color: #fff;
+  border-bottom-color: var(--admin-white);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   4. Main Content Panels
+   ========================================================================== */
+.studio-main-pane {
+  padding: 2rem;
+  max-width: 1300px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.tab-content-panel {
+  display: none;
+}
+.tab-content-panel.active {
+  display: block;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.panel-title {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.panel-desc {
+  font-size: 0.85rem;
+  color: var(--admin-white-70);
+  margin-top: 4px;
+}
+
+/* Studio Posts Grid */
+.studio-posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.studio-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.studio-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 14;
+  background: #000;
+  overflow: hidden;
+}
+
+.studio-card-media video,
+.studio-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-indicator-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.studio-card-body {
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.studio-card-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--admin-white-70);
+}
+
+.studio-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  margin: 0;
+  color: #fff;
+}
+
+.studio-card-desc {
+  font-size: 0.85rem;
+  color: var(--admin-white-70);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.studio-card-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.studio-card-footer button {
+  flex: 1;
+  padding: 7px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-set-hero {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--admin-border);
+  color: #fff;
+}
+.btn-set-hero.active {
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+}
+
+.btn-card-delete {
+  background: transparent;
+  border: 1px solid rgba(224, 71, 71, 0.4);
+  color: var(--admin-danger);
+}
+
+/* ==========================================================================
+   5. Modal & Bottom-Sheet
+   ========================================================================== */
+.editor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.editor-modal-container {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-heading {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 400;
+  margin: 0;
+}
+
+.modal-close-icon {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.editor-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--admin-border);
+  border-radius: 12px;
+  padding: 2rem 1rem;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  background: #000;
+}
+.upload-dropzone:hover {
+  border-color: #fff;
+}
+.upload-dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.media-preview-box {
+  margin-top: 1rem;
+  max-height: 240px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.media-preview-box video,
+.media-preview-box img {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--admin-white-70);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px;
+  background: #000;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+/* Mobile Floating Action Button */
+.mobile-fab-btn {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--admin-white);
+  color: #000;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  z-index: 90;
+}
+
+/* Cookie management card */
+.cookie-status-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.cookie-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cookie-tag {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+.storage-info-box {
+  font-size: 0.85rem;
+  color: var(--admin-white-70);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 768px) {
+  .admin-topbar {
+    padding: 1rem;
+  }
+  .studio-tabs-nav {
+    padding: 0.8rem 1rem 0;
+  }
+  .studio-main-pane {
+    padding: 1.2rem;
+  }
+  .mobile-fab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .panel-header .open-create-modal-btn {
+    display: none;
+  }
+  .editor-modal-container {
+    border-radius: 16px 16px 0 0;
+    max-height: 92vh;
+    margin-top: auto;
+  }
+  .editor-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+}

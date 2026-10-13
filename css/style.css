@@ -508,17 +508,56 @@ body {
 /* ==========================================================================
    Responsive
    ========================================================================== */
-@media (max-width: 768px) {
-  .header-nav {
-    display: none;
-  }
-  .journey-images-strip {
-    grid-template-columns: 1fr;
-  }
-  .hero-main-title {
-    font-size: 3.5rem;
-  }
-  .edits-grid {
-    grid-template-columns: 1fr;
+/* ==========================================================================
+   Cookie Consent Banner
+   ========================================================================== */
+.cookie-banner-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: 720px;
+  background: rgba(18, 18, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1.1rem 1.5rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 999;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+}
+
+.cookie-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.cookie-banner-text {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 300;
+  color: var(--color-white-90);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+  min-width: 260px;
+}
+
+.cookie-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .cookie-banner-bar {
+    bottom: 12px;
+    width: calc(100% - 24px);
+    padding: 1rem;
   }
 }
+
