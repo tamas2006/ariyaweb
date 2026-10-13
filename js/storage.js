@@ -95,6 +95,36 @@ const DEFAULT_POSTS = [
     src: 'assets/videos/clip-06.mp4',
     isHero: false,
     createdAt: 1712200006000
+  },
+  {
+    id: 'post-img-01',
+    type: 'image',
+    title: 'The Mathurā & Gandhāra Epistemology',
+    caption: 'Classical representation of the Buddha Shakyamuni. Form as emptiness, emptiness as form. The synthesis of Indian contemplative thought and Hellenistic sculptural aesthetics that defined the northern trade routes.',
+    category: 'Visual Dhamma',
+    src: 'assets/images/gandhara-mural.jpg',
+    isHero: false,
+    createdAt: 1712200007000
+  },
+  {
+    id: 'post-img-02',
+    type: 'image',
+    title: 'Madhyamaka & The Void',
+    caption: '“All things are empty of intrinsic nature.” Nāgārjuna’s dialectic illustrated through sky, stone, and silence. Neither being nor non-being, but dependent origination.',
+    category: 'Philosophy',
+    src: 'assets/images/gandhara-sky.jpg',
+    isHero: false,
+    createdAt: 1712200008000
+  },
+  {
+    id: 'post-img-03',
+    type: 'image',
+    title: 'Deekshabhoomi 1956: The Rational Awakening',
+    caption: 'The historic return to the Dhamma led by Babasaheb Dr. B. R. Ambedkar at Nagpur. An epochal turning point restoring human dignity, equality, and rational morality to millions.',
+    category: 'Ambedkarite',
+    src: 'assets/images/ambedkar-deekshabhoomi.jpg',
+    isHero: false,
+    createdAt: 1712200009000
   }
 ];
 
@@ -126,13 +156,23 @@ class AriyaDB {
         req.onsuccess = async () => {
           let posts = req.result || [];
           if (posts.length === 0) {
-            // Seed defaults if empty
+            // Seed all defaults if empty
             await this.seedDefaults();
             const seeded = await this.getAllPosts();
             resolve(seeded);
-          } else {
-            resolve(posts);
+            return;
           }
+
+          // Ensure default image posts exist if only videos were present
+          const hasImagePost = posts.some(p => p.type === 'image');
+          if (!hasImagePost) {
+            await this.seedDefaultImages();
+            const updated = await this.getAllPosts();
+            resolve(updated);
+            return;
+          }
+
+          resolve(posts);
         };
         req.onerror = () => reject(req.error);
       });
@@ -140,6 +180,21 @@ class AriyaDB {
       console.warn('Falling back to default posts:', e);
       return DEFAULT_POSTS;
     }
+  }
+
+  static async seedDefaultImages() {
+    try {
+      const db = await this.open();
+      const tx = db.transaction(STORE_MEDIA, 'readwrite');
+      const store = tx.objectStore(STORE_MEDIA);
+      const imageDefaults = DEFAULT_POSTS.filter(p => p.type === 'image');
+      for (const post of imageDefaults) {
+        store.put(post);
+      }
+      return new Promise((resolve) => {
+        tx.oncomplete = () => resolve();
+      });
+    } catch (e) {}
   }
 
   static async seedDefaults() {
@@ -206,6 +261,11 @@ class AriyaDB {
 
   static getMediaUrl(post) {
     if (!post) return '';
+    // 1. Direct Base64 string or relative path
+    if (post.src && typeof post.src === 'string' && post.src.trim().length > 0) {
+      return post.src;
+    }
+    // 2. Blob or File object
     if (post.blob) {
       if (post.blob instanceof Blob || (typeof post.blob === 'object' && post.blob.size)) {
         try {
@@ -218,17 +278,26 @@ class AriyaDB {
         return post.blob;
       }
     }
-    if (post.src) {
-      if (post.src instanceof Blob || (typeof post.src === 'object' && post.src.size)) {
-        try {
-          return URL.createObjectURL(post.src);
-        } catch (e) {
-          console.warn('Could not create ObjectURL from src blob:', e);
-        }
-      }
-      return post.src;
+    if (post.src && (post.src instanceof Blob || (typeof post.src === 'object' && post.src.size))) {
+      try {
+        return URL.createObjectURL(post.src);
+      } catch (e) {}
     }
     return '';
+  }
+
+  static async getBlogPosts() {
+    const posts = await this.getAllPosts();
+    const blogPosts = posts.filter(p => p.type === 'image' || p.isBlog);
+    blogPosts.sort((a, b) => {
+      const aIsCustom = a.id && a.id.startsWith('post-') && !a.id.startsWith('post-img-');
+      const bIsCustom = b.id && b.id.startsWith('post-') && !b.id.startsWith('post-img-');
+      if (aIsCustom && !bIsCustom) return -1;
+      if (!aIsCustom && bIsCustom) return 1;
+      if (aIsCustom && bIsCustom) return (b.createdAt || 0) - (a.createdAt || 0);
+      return (a.createdAt || 0) - (b.createdAt || 0);
+    });
+    return blogPosts;
   }
 
   static notifySync() {

@@ -229,14 +229,32 @@ function initPostModals() {
   closeModalBtn.addEventListener('click', hideModal);
   cancelModalBtn.addEventListener('click', hideModal);
 
-  // File Preview Handler (Instant 0ms Blob Preview)
-  mediaFileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Drag & Drop onto Dropzone
+  const dropzone = document.getElementById('uploadDropzone');
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = '#fff';
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = '';
+      });
+    });
+    dropzone.addEventListener('drop', (e) => {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
 
+  function processSelectedFile(file) {
     activeUploadedFile = file;
     const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
-    dropzoneLabel.textContent = `Ready: ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
+    dropzoneLabel.textContent = `Selected: ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
 
     const previewUrl = URL.createObjectURL(file);
     mediaPreviewWrap.style.display = 'block';
@@ -245,13 +263,19 @@ function initPostModals() {
     } else {
       mediaPreviewWrap.innerHTML = `<img src="${previewUrl}" style="max-height: 200px; width: 100%; object-fit: contain; border-radius: 6px;">`;
     }
+  }
+
+  // File Preview Handler
+  mediaFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) processSelectedFile(file);
   });
 
   // Submit Handler
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!activeUploadedFile) {
-      alert('Please select a video or image file to upload.');
+      alert('Please select an image or video file to upload.');
       return;
     }
 
@@ -264,14 +288,25 @@ function initPostModals() {
     savePostBtn.disabled = true;
 
     try {
+      // For images, generate permanent Base64 Data URL so it renders instantly everywhere
+      let base64Src = '';
+      if (type === 'image' && activeUploadedFile) {
+        base64Src = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(activeUploadedFile);
+        });
+      }
+
       const newPost = {
         id: 'post-' + Date.now(),
         type: type,
         title: title,
         category: category,
         caption: caption,
+        src: base64Src || '', // Permanent Base64 for images
         blob: activeUploadedFile, // Native Blob / File saved in IndexedDB
-        src: '',
         isHero: false,
         createdAt: Date.now()
       };
@@ -280,9 +315,10 @@ function initPostModals() {
       hideModal();
       await loadDashboardPosts();
       
-      const proceed = confirm(`"${title}" published successfully!\n\nWould you like to open the main website to see it live?`);
+      const targetUrl = type === 'image' ? 'posts.html' : 'index.html#edits';
+      const proceed = confirm(`"${title}" published successfully!\n\nWould you like to open the Posts & Reflections page to view your publication live?`);
       if (proceed) {
-        window.open('index.html', '_blank');
+        window.open(targetUrl, '_blank');
       }
     } catch (err) {
       alert('Error saving post: ' + err.message);

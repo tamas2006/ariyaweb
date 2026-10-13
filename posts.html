@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Posts &amp; Reflections — ariya.ex3</title>
+  <meta name="description"
+    content="Philosophical commentary, historical analysis, and visual Dhamma posts by ariya.ex3. Beyond the edit lies the idea.">
+
+  <link rel="icon" type="image/jpeg" href="assets/images/ariya-emblem.jpg">
+
+  <!-- Editorial Typography Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/posts.css">
+
+  <!-- Storage Engine & Posts Logic -->
+  <script src="js/storage.js" defer></script>
+  <script src="js/posts.js" defer></script>
+</head>
+
+<body class="posts-page-body">
+
+  <!-- Header Frame -->
+  <header class="site-header">
+    <div class="header-left">
+      <a href="index.html" class="brand-link">ariya.ex3</a>
+    </div>
+    <nav class="header-nav">
+      <a href="index.html">Home</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#edits">Edits</a>
+      <a href="posts.html" class="active">Posts</a>
+      <a href="https://instagram.com/ariya.ex3" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="admin.html" class="footer-admin-link" style="opacity: 0.45; font-size: 0.72rem;">Studio</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ==========================================================================
+         Posts Hero Header
+         ========================================================================== -->
+    <section class="posts-hero-section">
+      <span class="posts-hero-eyebrow">Editorial Archive &bull; Written Reflections</span>
+      <h1 class="posts-hero-title">Posts &amp; Essays</h1>
+      <p class="posts-hero-desc">
+        &ldquo;Beyond the edit lies the idea. Beyond the image lies the philosophy.&rdquo; Deep-dive commentaries,
+        historical context, and rational Buddhist explorations.
+      </p>
+
+      <div class="posts-controls-bar">
+        <div class="posts-search-box">
+          <span class="posts-search-icon">&#x26B2;</span>
+          <input type="text" id="postsSearchInput" class="posts-search-input" placeholder="Search essays or reflections...">
+        </div>
+        <div id="postsCountStats" class="posts-stats-count">Loading reflections...</div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         Category Filter Pills
+         ========================================================================== -->
+    <nav class="posts-filter-bar" id="categoryFilterBar">
+      <button class="filter-pill active" data-category="ALL">All Posts</button>
+      <button class="filter-pill" data-category="Visual Dhamma">Visual Dhamma</button>
+      <button class="filter-pill" data-category="Ambedkarite">Ambedkarite</button>
+      <button class="filter-pill" data-category="Madhyamaka">Madhyamaka</button>
+      <button class="filter-pill" data-category="Nalanda">Nālandā</button>
+      <button class="filter-pill" data-category="Philosophy">Philosophy</button>
+    </nav>
+
+    <!-- ==========================================================================
+         Main Feed Container
+         ========================================================================== -->
+    <section class="posts-feed-section">
+      
+      <!-- Featured Hero Post Container -->
+      <div id="featuredPostContainer"></div>
+
+      <!-- Grid of Regular Posts -->
+      <div id="blogPostsGrid" class="blog-posts-grid"></div>
+
+      <!-- Empty State (if filter yields no results) -->
+      <div id="postsEmptyState" class="posts-empty-state" style="display: none;">
+        <p>No reflections found matching your criteria.</p>
+        <button id="resetFilterBtn" class="minimal-btn">View All Posts</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================================================
+       Full Post Reader Modal
+       ========================================================================== -->
+  <div id="postReaderModal" class="post-reader-modal" style="display: none;">
+    <div class="reader-modal-box">
+      <button id="closeReaderBtn" class="reader-close-btn" title="Close (Esc)">&times;</button>
+      
+      <div id="readerMediaWrap" class="reader-media-wrap">
+        <img id="readerImage" src="" alt="Post visual">
+      </div>
+
+      <div class="reader-meta-bar">
+        <span id="readerCategory" class="post-category-tag">Category</span>
+        <span id="readerDate" class="posts-stats-count">Date</span>
+      </div>
+
+      <h2 id="readerTitle" class="reader-title">Post Title</h2>
+
+      <div id="readerBodyText" class="reader-body-text">
+        <!-- Full written description -->
+      </div>
+
+      <div class="reader-author-sign">
+        <span>Written by ariya.ex3</span>
+        <span>Philosophical Editor</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       Minimalist Footer
+       ========================================================================== -->
+  <footer class="site-footer">
+    <div class="footer-wrap">
+      <div class="footer-brand" id="footerBrandLogo" style="cursor: pointer;" title="Studio Access: Triple Click">ariya.ex3</div>
+      <div class="footer-quote">&ldquo;Beyond the edit lies the idea. Beyond the image lies the philosophy.&rdquo;</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="posts.html">Posts</a>
+        <a href="https://instagram.com/ariya.ex3" target="_blank" rel="noopener noreferrer">@ariya.ex3</a>
+        <a href="https://instagram.com/_chandrakirti" target="_blank" rel="noopener noreferrer">@_chandrakirti</a>
+        <a href="https://instagram.com/ariya.aesthetic" target="_blank" rel="noopener noreferrer">@ariya.aesthetic</a>
+        <a href="admin.html" class="footer-admin-link" style="opacity: 0.35; font-size: 0.72rem;">Studio</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       Cookie Consent Banner
+       ========================================================================== -->
+  <div id="cookieBanner" class="cookie-banner-bar" style="display: none;">
+    <div class="cookie-banner-content">
+      <p class="cookie-banner-text">
+        This archive uses minimal local session cookies to preserve your editorial preferences and aesthetic state. No tracking, ads, or telemetry.
+      </p>
+      <div class="cookie-banner-actions">
+        <button id="dismissCookieBtn" class="cookie-btn cookie-btn-ghost">Decline</button>
+        <button id="acceptCookieBtn" class="cookie-btn cookie-btn-solid">Accept</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

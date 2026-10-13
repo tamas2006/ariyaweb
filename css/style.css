@@ -225,6 +225,33 @@ body {
   border-color: var(--color-white);
 }
 
+.hero-posts-btn {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.hero-posts-btn:hover {
+  background: var(--color-white);
+  color: #000;
+  border-color: var(--color-white);
+}
+
+.nav-posts-link {
+  color: var(--color-white) !important;
+  font-weight: 600 !important;
+  position: relative;
+}
+
+.nav-posts-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
 .btn-indicator {
   width: 6px;
   height: 6px;
