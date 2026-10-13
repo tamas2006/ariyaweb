@@ -1,0 +1,8 @@
+# Archives and temporary files
+*.zip
+*.zip.zip
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+*.log
