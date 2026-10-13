@@ -301,8 +301,16 @@ class AriyaDB {
   }
 
   static async getHeroVideo() {
-    const posts = await this.getAllPosts();
-    return posts.find(p => p.isHero) || posts.find(p => p.type === 'video') || DEFAULT_POSTS[0];
+    // The centerpiece hero video is permanently locked to lake.mp4
+    return {
+      id: 'post-hero-default',
+      type: 'video',
+      title: 'Sanctuary of Mind',
+      caption: 'Hero Centerpiece',
+      category: 'Hero',
+      src: 'assets/videos/lake.mp4',
+      isHero: true
+    };
   }
 
   static getMediaUrl(post) {
@@ -334,10 +342,11 @@ class AriyaDB {
 
   static async getBlogPosts() {
     const posts = await this.getAllPosts();
-    const blogPosts = posts.filter(p => p.type === 'image' || p.isBlog);
+    // Exclude only the raw background hero video; include ALL posts (both images and videos)!
+    const blogPosts = posts.filter(p => p.id !== 'post-hero-default');
     blogPosts.sort((a, b) => {
-      const aIsCustom = a.id && a.id.startsWith('post-') && !a.id.startsWith('post-img-');
-      const bIsCustom = b.id && b.id.startsWith('post-') && !b.id.startsWith('post-img-');
+      const aIsCustom = a.id && a.id.startsWith('post-') && !a.id.startsWith('post-img-') && !a.id.match(/^post-0[1-6]$/);
+      const bIsCustom = b.id && b.id.startsWith('post-') && !b.id.startsWith('post-img-') && !b.id.match(/^post-0[1-6]$/);
       if (aIsCustom && !bIsCustom) return -1;
       if (!aIsCustom && bIsCustom) return 1;
       if (aIsCustom && bIsCustom) return (b.createdAt || 0) - (a.createdAt || 0);

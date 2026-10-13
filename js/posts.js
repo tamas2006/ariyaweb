@@ -72,14 +72,18 @@ function renderFilteredPosts() {
     const rest = filtered.slice(1);
 
     const featuredMedia = AriyaDB.getMediaUrl(featured);
+    const featuredMediaHtml = featured.type === 'video'
+      ? `<video src="${featuredMedia}" controls playsinline preload="metadata" style="width: 100%; height: 100%; object-fit: cover;"></video>`
+      : `<img src="${featuredMedia}" alt="${escapeHtml(featured.title)}" loading="eager">`;
+
     featuredContainer.innerHTML = `
       <article class="featured-blog-card" data-post-id="${featured.id}">
         <div class="featured-media-wrap">
-          <img src="${featuredMedia}" alt="${escapeHtml(featured.title)}" loading="eager">
+          ${featuredMediaHtml}
         </div>
         <div class="featured-content">
           <div class="featured-badge">
-            <span>&starf; Featured Essay</span>
+            <span>&starf; ${featured.type === 'video' ? 'Featured Video Reflection' : 'Featured Essay'}</span>
             &bull;
             <span class="post-category-tag">${escapeHtml(featured.category || 'Visual Dhamma')}</span>
           </div>
@@ -109,16 +113,20 @@ function renderCardsToGrid(container, posts) {
     const mediaUrl = AriyaDB.getMediaUrl(post);
     const dateFormatted = post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Archive';
 
+    const mediaHtml = post.type === 'video'
+      ? `<video src="${mediaUrl}" controls playsinline preload="metadata" style="width: 100%; height: 100%; object-fit: cover;"></video>`
+      : `<img src="${mediaUrl}" alt="${escapeHtml(post.title)}" loading="lazy">`;
+
     const card = document.createElement('article');
     card.className = 'blog-post-card';
     card.setAttribute('data-post-id', post.id);
     card.innerHTML = `
       <div class="blog-card-media">
-        <img src="${mediaUrl}" alt="${escapeHtml(post.title)}" loading="lazy">
+        ${mediaHtml}
       </div>
       <div class="blog-card-body">
         <div class="blog-card-meta">
-          <span class="post-category-tag">${escapeHtml(post.category || 'Artwork')}</span>
+          <span class="post-category-tag">${escapeHtml(post.category || (post.type === 'video' ? 'Video Edit' : 'Artwork'))}</span>
           <span>${dateFormatted}</span>
         </div>
         <h3 class="blog-card-title">${escapeHtml(post.title)}</h3>
@@ -221,6 +229,11 @@ function initReaderModal() {
   function closeModal() {
     modal.style.display = 'none';
     document.body.style.overflow = '';
+    const vid = modal.querySelector('video');
+    if (vid) {
+      vid.pause();
+      vid.src = '';
+    }
   }
 
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -240,7 +253,7 @@ function initReaderModal() {
 
 function openReaderModal(post) {
   const modal = document.getElementById('postReaderModal');
-  const image = document.getElementById('readerImage');
+  const mediaWrap = document.getElementById('readerMediaWrap');
   const category = document.getElementById('readerCategory');
   const date = document.getElementById('readerDate');
   const title = document.getElementById('readerTitle');
@@ -249,9 +262,15 @@ function openReaderModal(post) {
   if (!modal) return;
 
   const mediaUrl = AriyaDB.getMediaUrl(post);
-  image.src = mediaUrl;
-  image.alt = post.title || 'Visual Dhamma';
-  category.textContent = post.category || 'Visual Dhamma';
+  if (mediaWrap) {
+    if (post.type === 'video') {
+      mediaWrap.innerHTML = `<video src="${mediaUrl}" controls autoplay playsinline style="width: 100%; max-height: 480px; border-radius: 8px; background: #000;"></video>`;
+    } else {
+      mediaWrap.innerHTML = `<img id="readerImage" src="${mediaUrl}" alt="${escapeHtml(post.title)}" style="width: 100%; max-height: 480px; object-fit: contain; border-radius: 8px;">`;
+    }
+  }
+
+  category.textContent = post.category || (post.type === 'video' ? 'Video Edit' : 'Visual Dhamma');
   date.textContent = post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Editorial Archive';
   title.textContent = post.title || 'Untitled Post';
   bodyText.textContent = post.caption || 'No reflection provided.';

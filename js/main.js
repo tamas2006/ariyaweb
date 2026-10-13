@@ -143,7 +143,8 @@ async function syncDynamicContent() {
 
     // 3. Sync Video Edits Archive
     const allPosts = await AriyaDB.getAllPosts();
-    const videoPosts = allPosts.filter(p => p.type === 'video' && !p.isHero);
+    // Include ALL uploaded videos; never hide them as hero
+    const videoPosts = allPosts.filter(p => p.type === 'video' && p.id !== 'post-hero-default');
 
     // Custom uploads first (newest to oldest), followed by seed archive edits
     videoPosts.sort((a, b) => {
