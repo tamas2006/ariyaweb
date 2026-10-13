@@ -315,27 +315,30 @@ class AriyaDB {
 
   static getMediaUrl(post) {
     if (!post) return '';
-    // 1. Direct Base64 string or relative path
-    if (post.src && typeof post.src === 'string' && post.src.trim().length > 0) {
-      return post.src;
-    }
-    // 2. Blob or File object
-    if (post.blob) {
-      if (post.blob instanceof Blob || (typeof post.blob === 'object' && post.blob.size)) {
-        try {
+    try {
+      // 1. Direct Base64 string or relative path
+      if (post.src && typeof post.src === 'string' && post.src.trim().length > 0) {
+        return post.src;
+      }
+      // 2. Blob or File object
+      if (post.blob) {
+        if (post.blob instanceof Blob) {
           return URL.createObjectURL(post.blob);
-        } catch (e) {
-          console.warn('Could not create ObjectURL from blob:', e);
+        }
+        if (typeof post.blob === 'object' && post.blob.size) {
+          const mime = post.blob.type || (post.type === 'video' ? 'video/mp4' : 'image/jpeg');
+          const actualBlob = new Blob([post.blob], { type: mime });
+          return URL.createObjectURL(actualBlob);
+        }
+        if (typeof post.blob === 'string' && post.blob.length > 0) {
+          return post.blob;
         }
       }
-      if (typeof post.blob === 'string' && post.blob.length > 0) {
-        return post.blob;
-      }
-    }
-    if (post.src && (post.src instanceof Blob || (typeof post.src === 'object' && post.src.size))) {
-      try {
+      if (post.src && post.src instanceof Blob) {
         return URL.createObjectURL(post.src);
-      } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('Could not create ObjectURL from blob:', e);
     }
     return '';
   }

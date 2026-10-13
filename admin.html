@@ -36,16 +36,13 @@
 
       <form id="loginForm" class="login-form">
         <div class="input-wrap">
-          <input type="password" id="passcodeInput" placeholder="Enter PIN" autocomplete="current-password" required autofocus>
+          <input type="password" id="passcodeInput" placeholder="Enter PIN" autocomplete="off" required autofocus>
         </div>
-        
-        <label class="remember-cookie-wrap">
-          <input type="checkbox" id="rememberMeCheck" checked>
-          <span>Remember me on this device (Save session cookie)</span>
-        </label>
 
-        <button type="submit" class="admin-primary-btn">Unlock Studio</button>
+        <button type="submit" id="unlockStudioBtn" class="admin-primary-btn">Unlock Studio</button>
         <p id="loginError" class="login-error" style="display: none;">Incorrect passcode. Try again.</p>
+        <p id="lockoutNotice" class="login-error" style="display: none;"></p>
+        <p id="sessionTimeoutNotice" class="login-info" style="display: none; color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 0.5rem; text-align: center;"></p>
       </form>
       <a href="index.html" class="back-link">&larr; Return to Website</a>
     </div>

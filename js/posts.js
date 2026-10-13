@@ -107,7 +107,7 @@ function renderFilteredPosts() {
 
 function renderCardsToGrid(container, posts) {
   container.innerHTML = '';
-  const isAdmin = window.CookieManager && CookieManager.get('ariya_auth_session') === 'authenticated';
+  const isAdmin = sessionStorage.getItem('ariya_session_auth_token') === 'authenticated';
 
   posts.forEach(post => {
     const mediaUrl = AriyaDB.getMediaUrl(post);

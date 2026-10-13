@@ -1,10 +1,27 @@
 /**
  * ariya.ex3 — Studio Admin Logic
- * Instant native media upload, Blob persistence, cookie sessions, and live sync
+ * Hardened Cybersecurity Architecture:
+ * - SHA-256 Salted Passcode Verification (Zero plaintext credentials)
+ * - Strict SessionStorage Tokenization (Zero persistent cookie bypass)
+ * - Anti-Brute-Force Rate Limiting (5 failed attempts = 15-minute lockout)
+ * - Dynamic Inactivity Lockout (15 minutes idle timeout)
  */
 
-const ADMIN_PIN = 'ariya2026';
-const AUTH_COOKIE = 'ariya_auth_session';
+const VERIFIED_AUTH_HASH = '96a9f46d409e69a5ebd61293c6abe3eb10736253cce15dd4838a00539ee99138';
+const AUTH_SALT = 'ariya_sec_salt';
+const SESSION_AUTH_KEY = 'ariya_session_auth_token';
+const THROTTLE_STORAGE_KEY = 'ariya_auth_throttle';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+let idleTimeoutTimer = null;
+
+// Purge any legacy persistent authentication cookies immediately on load
+if (window.CookieManager) {
+  CookieManager.delete('ariya_auth_session');
+  CookieManager.delete('ariya_auth_persistent');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -15,55 +32,171 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   1. Cookie-Based Authentication
+   1. Cryptographically Secure & Hardened Authentication Gate
    ========================================================================== */
 function initAuth() {
   const loginGate = document.getElementById('loginGate');
   const adminDashboard = document.getElementById('adminDashboard');
   const loginForm = document.getElementById('loginForm');
   const passcodeInput = document.getElementById('passcodeInput');
-  const rememberMeCheck = document.getElementById('rememberMeCheck');
+  const unlockBtn = document.getElementById('unlockStudioBtn');
   const loginError = document.getElementById('loginError');
+  const lockoutNotice = document.getElementById('lockoutNotice');
+  const timeoutNotice = document.getElementById('sessionTimeoutNotice');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  // Check existing session cookie
-  const sessionToken = CookieManager.get(AUTH_COOKIE);
-  if (sessionToken === 'authenticated') {
-    unlockDashboard();
+  // Verify whether rate limiting lockout is currently active
+  function checkThrottleLockout() {
+    try {
+      const throttleData = JSON.parse(sessionStorage.getItem(THROTTLE_STORAGE_KEY) || '{}');
+      if (throttleData.lockedUntil && Date.now() < throttleData.lockedUntil) {
+        const remainingMinutes = Math.ceil((throttleData.lockedUntil - Date.now()) / 60000);
+        if (lockoutNotice) {
+          lockoutNotice.textContent = `Security Lockout: Too many failed attempts. Try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`;
+          lockoutNotice.style.display = 'block';
+        }
+        if (loginError) loginError.style.display = 'none';
+        if (passcodeInput) passcodeInput.disabled = true;
+        if (unlockBtn) unlockBtn.disabled = true;
+        return true;
+      } else if (throttleData.lockedUntil && Date.now() >= throttleData.lockedUntil) {
+        sessionStorage.removeItem(THROTTLE_STORAGE_KEY);
+      }
+    } catch (e) {}
+
+    if (passcodeInput) passcodeInput.disabled = false;
+    if (unlockBtn) unlockBtn.disabled = false;
+    if (lockoutNotice) lockoutNotice.style.display = 'none';
+    return false;
   }
 
-  // Handle Login
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const pin = passcodeInput.value.trim();
+  function recordFailedAttempt() {
+    let throttleData = { attempts: 0, lockedUntil: null };
+    try {
+      throttleData = JSON.parse(sessionStorage.getItem(THROTTLE_STORAGE_KEY) || '{"attempts":0,"lockedUntil":null}');
+    } catch (e) {}
 
-    if (pin === ADMIN_PIN) {
-      if (rememberMeCheck.checked) {
-        CookieManager.set(AUTH_COOKIE, 'authenticated', 14); // 14 days
+    throttleData.attempts = (throttleData.attempts || 0) + 1;
+    if (throttleData.attempts >= MAX_ATTEMPTS) {
+      throttleData.lockedUntil = Date.now() + LOCKOUT_MS;
+    }
+    sessionStorage.setItem(THROTTLE_STORAGE_KEY, JSON.stringify(throttleData));
+    checkThrottleLockout();
+  }
+
+  function clearThrottleData() {
+    sessionStorage.removeItem(THROTTLE_STORAGE_KEY);
+  }
+
+  async function computeSha256(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Reset inactivity timer on any user activity inside Studio
+  function resetInactivityTimer() {
+    if (idleTimeoutTimer) clearTimeout(idleTimeoutTimer);
+    idleTimeoutTimer = setTimeout(() => {
+      lockDashboard('Session locked automatically after 15 minutes of inactivity.');
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+
+  function setupInactivityListeners() {
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+      window.addEventListener(evt, resetInactivityTimer, { passive: true });
+    });
+    resetInactivityTimer();
+  }
+
+  function removeInactivityListeners() {
+    if (idleTimeoutTimer) clearTimeout(idleTimeoutTimer);
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+      window.removeEventListener(evt, resetInactivityTimer);
+    });
+  }
+
+  // Check existing active session strictly from sessionStorage
+  const activeSessionToken = sessionStorage.getItem(SESSION_AUTH_KEY);
+  if (activeSessionToken === 'authenticated') {
+    unlockDashboard();
+  } else {
+    checkThrottleLockout();
+  }
+
+  // Handle Login Submission
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (checkThrottleLockout()) return;
+
+    const enteredPin = passcodeInput.value.trim();
+    if (!enteredPin) return;
+
+    try {
+      const computedHash = await computeSha256(enteredPin + AUTH_SALT);
+      if (computedHash === VERIFIED_AUTH_HASH) {
+        clearThrottleData();
+        if (loginError) loginError.style.display = 'none';
+        if (lockoutNotice) lockoutNotice.style.display = 'none';
+        if (timeoutNotice) timeoutNotice.style.display = 'none';
+
+        sessionStorage.setItem(SESSION_AUTH_KEY, 'authenticated');
+        unlockDashboard();
       } else {
-        CookieManager.set(AUTH_COOKIE, 'authenticated', 1);
+        recordFailedAttempt();
+        if (!checkThrottleLockout()) {
+          if (loginError) {
+            loginError.textContent = 'Incorrect passcode. Access denied.';
+            loginError.style.display = 'block';
+          }
+        }
+        passcodeInput.value = '';
+        passcodeInput.focus();
       }
-      unlockDashboard();
-    } else {
-      loginError.style.display = 'block';
-      passcodeInput.value = '';
-      passcodeInput.focus();
+    } catch (err) {
+      console.error('Authentication verification error:', err);
+      if (loginError) {
+        loginError.textContent = 'Cryptographic verification error.';
+        loginError.style.display = 'block';
+      }
     }
   });
 
-  // Handle Logout
+  // Handle Explicit Logout
   logoutBtn.addEventListener('click', () => {
-    CookieManager.delete(AUTH_COOKIE);
-    adminDashboard.style.display = 'none';
-    loginGate.style.display = 'flex';
-    passcodeInput.value = '';
+    lockDashboard();
   });
 
   function unlockDashboard() {
     loginGate.style.display = 'none';
     adminDashboard.style.display = 'flex';
+    setupInactivityListeners();
     loadDashboardPosts();
     renderCookieStatus();
+  }
+
+  function lockDashboard(reasonNotice = '') {
+    removeInactivityListeners();
+    sessionStorage.removeItem(SESSION_AUTH_KEY);
+    if (window.CookieManager) {
+      CookieManager.delete('ariya_auth_session');
+    }
+    adminDashboard.style.display = 'none';
+    loginGate.style.display = 'flex';
+    passcodeInput.value = '';
+
+    if (timeoutNotice) {
+      if (reasonNotice) {
+        timeoutNotice.textContent = reasonNotice;
+        timeoutNotice.style.display = 'block';
+      } else {
+        timeoutNotice.style.display = 'none';
+      }
+    }
+    if (loginError) loginError.style.display = 'none';
+    checkThrottleLockout();
   }
 }
 
@@ -375,17 +508,55 @@ function initPostModals() {
       await loadDashboardPosts();
       
       const targetUrl = type === 'image' ? 'posts.html' : 'index.html#edits';
-      const proceed = confirm(`"${title}" published successfully!\n\nWould you like to open the Posts & Reflections page to view your publication live?`);
-      if (proceed) {
-        window.open(targetUrl, '_blank');
-      }
+      showStudioToast(`“${title}” published to live site!`, 'View Live &rarr;', targetUrl);
     } catch (err) {
-      alert('Error saving post: ' + err.message);
+      showStudioToast('Error saving post: ' + err.message);
     } finally {
       savePostBtn.textContent = 'Publish to Site';
       savePostBtn.disabled = false;
     }
   });
+}
+
+function showStudioToast(message, linkText = '', linkUrl = '') {
+  let toast = document.getElementById('studioToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'studioToast';
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111113;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 14px 20px;
+      color: #fff;
+      font-family: var(--font-sans, -apple-system, sans-serif);
+      font-size: 0.9rem;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.85);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(20px);
+      opacity: 0;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `
+    <span>${escapeHtml(message)}</span>
+    ${linkUrl ? `<a href="${linkUrl}" target="_blank" style="color: #fff; text-decoration: underline; font-weight: 600;">${escapeHtml(linkText || 'View Live &rarr;')}</a>` : ''}
+  `;
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateY(0)';
+    toast.style.opacity = '1';
+  });
+  setTimeout(() => {
+    toast.style.transform = 'translateY(20px)';
+    toast.style.opacity = '0';
+  }, 5000);
 }
 
 /* ==========================================================================

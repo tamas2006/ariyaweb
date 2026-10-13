@@ -158,21 +158,29 @@ async function syncDynamicContent() {
 
     const grid = document.querySelector('.edits-grid');
 
-    if (grid && videoPosts.length > 0) {
+    if (grid) {
       grid.innerHTML = '';
-      videoPosts.forEach((post, idx) => {
-        const mediaUrl = AriyaDB.getMediaUrl(post);
-        const card = document.createElement('div');
-        card.className = 'edit-card';
-        card.innerHTML = `
-          <div class="edit-video-wrapper">
-            <video src="${mediaUrl}" controls playsinline preload="metadata"></video>
+      if (videoPosts.length === 0) {
+        grid.innerHTML = `
+          <div class="archive-empty-state" style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem;">
+            <p style="font-family: var(--font-serif); font-size: 1.25rem; color: var(--color-white-50); margin: 0;">No video edits published in archive.</p>
           </div>
-          <div class="edit-caption">${escapeHtml(post.title || `Edit 0${idx + 1}`)} ${post.category ? `&bull; ${escapeHtml(post.category)}` : ''}</div>
-          ${post.caption ? `<p class="edit-subcaption" style="font-family: var(--font-serif); font-size: 1.05rem; color: var(--color-white-70); line-height: 1.4; margin-top: -0.3rem;">${escapeHtml(post.caption)}</p>` : ''}
         `;
-        grid.appendChild(card);
-      });
+      } else {
+        videoPosts.forEach((post, idx) => {
+          const mediaUrl = AriyaDB.getMediaUrl(post);
+          const card = document.createElement('div');
+          card.className = 'edit-card';
+          card.innerHTML = `
+            <div class="edit-video-wrapper">
+              <video src="${mediaUrl}" controls playsinline preload="metadata"></video>
+            </div>
+            <div class="edit-caption">${escapeHtml(post.title || `Edit 0${idx + 1}`)} ${post.category ? `&bull; ${escapeHtml(post.category)}` : ''}</div>
+            ${post.caption ? `<p class="edit-subcaption" style="font-family: var(--font-serif); font-size: 1.05rem; color: var(--color-white-70); line-height: 1.4; margin-top: -0.3rem;">${escapeHtml(post.caption)}</p>` : ''}
+          `;
+          grid.appendChild(card);
+        });
+      }
     }
 
     // 4. Sync Visual Dhamma Image Posts
