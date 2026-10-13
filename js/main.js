@@ -126,6 +126,32 @@ async function syncDynamicContent() {
       });
     }
 
+    // 4. Sync Visual Dhamma Image Posts
+    const imagePosts = allPosts.filter(p => p.type === 'image');
+    const gallerySection = document.getElementById('gallery');
+    const galleryGrid = document.querySelector('.gallery-posts-grid');
+
+    if (gallerySection && galleryGrid) {
+      if (imagePosts.length > 0) {
+        gallerySection.style.display = 'block';
+        galleryGrid.innerHTML = '';
+        imagePosts.forEach(post => {
+          const card = document.createElement('article');
+          card.className = 'gallery-post-card';
+          card.innerHTML = `
+            <div class="gallery-image-wrapper">
+              <img src="${post.src}" alt="${escapeHtml(post.title)}" loading="lazy">
+            </div>
+            <h3 class="gallery-post-title">${escapeHtml(post.title)} ${post.category ? `&bull; ${escapeHtml(post.category)}` : ''}</h3>
+            ${post.caption ? `<p class="gallery-post-desc">${escapeHtml(post.caption)}</p>` : ''}
+          `;
+          galleryGrid.appendChild(card);
+        });
+      } else {
+        gallerySection.style.display = 'none';
+      }
+    }
+
   } catch (err) {
     console.warn('Dynamic sync fallback to static:', err);
   }
