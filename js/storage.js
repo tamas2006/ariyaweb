@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'AriyaEx3Database';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_MEDIA = 'media_posts';
 
 // Cookie Utilities
@@ -117,22 +117,29 @@ class AriyaDB {
   }
 
   static async getAllPosts() {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_MEDIA, 'readonly');
-      const store = tx.objectStore(STORE_MEDIA);
-      const req = store.getAll();
-      req.onsuccess = async () => {
-        let posts = req.result || [];
-        if (posts.length === 0) {
-          // Seed defaults if empty
-          await this.seedDefaults();
-          posts = await this.getAllPosts();
-        }
-        resolve(posts);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    try {
+      const db = await this.open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_MEDIA, 'readonly');
+        const store = tx.objectStore(STORE_MEDIA);
+        const req = store.getAll();
+        req.onsuccess = async () => {
+          let posts = req.result || [];
+          if (posts.length === 0) {
+            // Seed defaults if empty
+            await this.seedDefaults();
+            const seeded = await this.getAllPosts();
+            resolve(seeded);
+          } else {
+            resolve(posts);
+          }
+        };
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn('Falling back to default posts:', e);
+      return DEFAULT_POSTS;
+    }
   }
 
   static async seedDefaults() {
@@ -153,7 +160,10 @@ class AriyaDB {
       const tx = db.transaction(STORE_MEDIA, 'readwrite');
       const store = tx.objectStore(STORE_MEDIA);
       const req = store.put(post);
-      req.onsuccess = () => resolve(post);
+      req.onsuccess = () => {
+        this.notifySync();
+        resolve(post);
+      };
       req.onerror = () => reject(req.error);
     });
   }
@@ -164,7 +174,10 @@ class AriyaDB {
       const tx = db.transaction(STORE_MEDIA, 'readwrite');
       const store = tx.objectStore(STORE_MEDIA);
       const req = store.delete(id);
-      req.onsuccess = () => resolve(true);
+      req.onsuccess = () => {
+        this.notifySync();
+        resolve(true);
+      };
       req.onerror = () => reject(req.error);
     });
   }
@@ -179,13 +192,55 @@ class AriyaDB {
       store.put(post);
     }
     return new Promise((resolve) => {
-      tx.oncomplete = () => resolve();
+      tx.oncomplete = () => {
+        this.notifySync();
+        resolve();
+      };
     });
   }
 
   static async getHeroVideo() {
     const posts = await this.getAllPosts();
     return posts.find(p => p.isHero) || posts.find(p => p.type === 'video') || DEFAULT_POSTS[0];
+  }
+
+  static getMediaUrl(post) {
+    if (!post) return '';
+    if (post.blob) {
+      if (post.blob instanceof Blob || (typeof post.blob === 'object' && post.blob.size)) {
+        try {
+          return URL.createObjectURL(post.blob);
+        } catch (e) {
+          console.warn('Could not create ObjectURL from blob:', e);
+        }
+      }
+      if (typeof post.blob === 'string' && post.blob.length > 0) {
+        return post.blob;
+      }
+    }
+    if (post.src) {
+      if (post.src instanceof Blob || (typeof post.src === 'object' && post.src.size)) {
+        try {
+          return URL.createObjectURL(post.src);
+        } catch (e) {
+          console.warn('Could not create ObjectURL from src blob:', e);
+        }
+      }
+      return post.src;
+    }
+    return '';
+  }
+
+  static notifySync() {
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('ariya_sync_channel');
+        channel.postMessage({ type: 'DATA_UPDATED', timestamp: Date.now() });
+      }
+    } catch (e) {}
+    try {
+      localStorage.setItem('ariya_last_sync', Date.now().toString());
+    } catch (e) {}
   }
 }
 

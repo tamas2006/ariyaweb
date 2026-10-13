@@ -1,6 +1,6 @@
 /**
  * ariya.ex3 — Studio Admin Logic
- * Complete CRUD, media uploads, cookie sessions, and hero switcher
+ * Instant native media upload, Blob persistence, cookie sessions, and live sync
  */
 
 const ADMIN_PIN = 'ariya2026';
@@ -109,11 +109,12 @@ function renderVideos(videos) {
   }
 
   videos.forEach(post => {
+    const mediaUrl = AriyaDB.getMediaUrl(post);
     const card = document.createElement('article');
     card.className = 'studio-card';
     card.innerHTML = `
       <div class="studio-card-media">
-        <video src="${post.src}" controls playsinline preload="metadata"></video>
+        <video src="${mediaUrl}" controls playsinline preload="metadata"></video>
         ${post.isHero ? '<span class="hero-indicator-badge">&starf; Centerpiece Hero</span>' : ''}
       </div>
       <div class="studio-card-body">
@@ -157,11 +158,12 @@ function renderImages(images) {
   }
 
   images.forEach(post => {
+    const mediaUrl = AriyaDB.getMediaUrl(post);
     const card = document.createElement('article');
     card.className = 'studio-card';
     card.innerHTML = `
       <div class="studio-card-media">
-        <img src="${post.src}" alt="${escapeHtml(post.title)}" loading="lazy">
+        <img src="${mediaUrl}" alt="${escapeHtml(post.title)}" loading="lazy">
       </div>
       <div class="studio-card-body">
         <span class="studio-card-tag">${post.category || 'Artwork'}</span>
@@ -185,9 +187,9 @@ function renderImages(images) {
 }
 
 /* ==========================================================================
-   4. Post Upload & Editor Modal
+   4. Post Upload & Editor Modal (Instant Blob Handling)
    ========================================================================== */
-let activeUploadedMediaData = null;
+let activeUploadedFile = null;
 
 function initPostModals() {
   const modal = document.getElementById('postEditorModal');
@@ -199,6 +201,7 @@ function initPostModals() {
   const dropzoneLabel = document.getElementById('dropzoneLabel');
   const postTypeField = document.getElementById('postTypeField');
   const modalFormTitle = document.getElementById('modalFormTitle');
+  const savePostBtn = document.getElementById('savePostBtn');
 
   // Open buttons
   document.querySelectorAll('.open-create-modal-btn').forEach(btn => {
@@ -206,13 +209,15 @@ function initPostModals() {
       const type = btn.getAttribute('data-type') || 'video';
       postTypeField.value = type;
       modalFormTitle.textContent = type === 'video' ? 'Upload New Video' : 'Upload New Image Post';
-      mediaFileInput.accept = type === 'video' ? 'video/mp4' : 'image/*';
+      mediaFileInput.accept = type === 'video' ? 'video/mp4,video/*' : 'image/*';
       
       form.reset();
-      activeUploadedMediaData = null;
+      activeUploadedFile = null;
       mediaPreviewWrap.style.display = 'none';
       mediaPreviewWrap.innerHTML = '';
       dropzoneLabel.textContent = `Tap to select or drop ${type}`;
+      savePostBtn.textContent = 'Publish to Site';
+      savePostBtn.disabled = false;
       modal.style.display = 'flex';
     });
   });
@@ -224,31 +229,28 @@ function initPostModals() {
   closeModalBtn.addEventListener('click', hideModal);
   cancelModalBtn.addEventListener('click', hideModal);
 
-  // File Preview Handler
+  // File Preview Handler (Instant 0ms Blob Preview)
   mediaFileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const isVideo = file.type.startsWith('video/');
-    dropzoneLabel.textContent = `Selected: ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
+    activeUploadedFile = file;
+    const isVideo = file.type.startsWith('video/') || file.name.endsWith('.mp4');
+    dropzoneLabel.textContent = `Ready: ${file.name} (${(file.size / (1024*1024)).toFixed(1)} MB)`;
 
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      activeUploadedMediaData = loadEvent.target.result;
-      mediaPreviewWrap.style.display = 'block';
-      if (isVideo) {
-        mediaPreviewWrap.innerHTML = `<video src="${activeUploadedMediaData}" controls autoplay muted playsinline style="max-height: 200px; width: 100%; border-radius: 6px;"></video>`;
-      } else {
-        mediaPreviewWrap.innerHTML = `<img src="${activeUploadedMediaData}" style="max-height: 200px; width: 100%; object-fit: contain; border-radius: 6px;">`;
-      }
-    };
-    reader.readAsDataURL(file);
+    const previewUrl = URL.createObjectURL(file);
+    mediaPreviewWrap.style.display = 'block';
+    if (isVideo) {
+      mediaPreviewWrap.innerHTML = `<video src="${previewUrl}" controls autoplay muted playsinline style="max-height: 200px; width: 100%; border-radius: 6px;"></video>`;
+    } else {
+      mediaPreviewWrap.innerHTML = `<img src="${previewUrl}" style="max-height: 200px; width: 100%; object-fit: contain; border-radius: 6px;">`;
+    }
   });
 
   // Submit Handler
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!activeUploadedMediaData) {
+    if (!activeUploadedFile) {
       alert('Please select a video or image file to upload.');
       return;
     }
@@ -258,21 +260,36 @@ function initPostModals() {
     const caption = document.getElementById('postCaptionInput').value.trim();
     const type = postTypeField.value;
 
-    const newPost = {
-      id: 'post-' + Date.now(),
-      type: type,
-      title: title,
-      category: category,
-      caption: caption,
-      src: activeUploadedMediaData,
-      isHero: false,
-      createdAt: Date.now()
-    };
+    savePostBtn.textContent = 'Publishing...';
+    savePostBtn.disabled = true;
 
-    await AriyaDB.savePost(newPost);
-    hideModal();
-    loadDashboardPosts();
-    alert(`Published "${title}" successfully!`);
+    try {
+      const newPost = {
+        id: 'post-' + Date.now(),
+        type: type,
+        title: title,
+        category: category,
+        caption: caption,
+        blob: activeUploadedFile, // Native Blob / File saved in IndexedDB
+        src: '',
+        isHero: false,
+        createdAt: Date.now()
+      };
+
+      await AriyaDB.savePost(newPost);
+      hideModal();
+      await loadDashboardPosts();
+      
+      const proceed = confirm(`"${title}" published successfully!\n\nWould you like to open the main website to see it live?`);
+      if (proceed) {
+        window.open('index.html', '_blank');
+      }
+    } catch (err) {
+      alert('Error saving post: ' + err.message);
+    } finally {
+      savePostBtn.textContent = 'Publish to Site';
+      savePostBtn.disabled = false;
+    }
   });
 }
 
@@ -298,6 +315,7 @@ function initSiteTextEditor() {
       manifestoQuote: manifestoQuoteInput.value.trim()
     };
     localStorage.setItem('ariya_site_config', JSON.stringify(config));
+    AriyaDB.notifySync();
     alert('Site editorial text saved! Visible immediately on live site.');
   });
 }
@@ -333,6 +351,7 @@ function renderCookieStatus() {
       tx.objectStore(STORE_MEDIA).clear();
       tx.oncomplete = async () => {
         await AriyaDB.seedDefaults();
+        AriyaDB.notifySync();
         loadDashboardPosts();
         alert('Restored default clips successfully!');
       };
@@ -348,7 +367,16 @@ function initExportBackup() {
     const backupData = {
       exportedAt: new Date().toISOString(),
       siteConfig: config,
-      posts: posts
+      posts: posts.map(p => ({
+        id: p.id,
+        type: p.type,
+        title: p.title,
+        category: p.category,
+        caption: p.caption,
+        src: typeof p.src === 'string' ? p.src : '',
+        isHero: p.isHero,
+        createdAt: p.createdAt
+      }))
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });

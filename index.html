@@ -20,6 +20,9 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
 
+  <!-- Storage Engine & Cookie Session -->
+  <script src="js/storage.js" defer></script>
+
   <!-- GSAP & ScrollTrigger -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
@@ -37,18 +40,18 @@
       <a href="#about">About</a>
       <a href="#why">Why This Website</a>
       <a href="#edits">Edits</a>
+      <a href="#gallery" id="navGalleryLink" style="display: none;">Visual Dhamma</a>
       <a href="https://instagram.com/ariya.ex3" target="_blank" rel="noopener noreferrer">Instagram</a>
     </nav>
   </header>
 
   <main>
     <!-- ==========================================================================
-         Section 1: Hero with edit-03.mp4 Video as Centerpiece
+         Section 1: Hero with lake.mp4 Video as Centerpiece
          ========================================================================== -->
     <section class="hero-section" id="hero">
       <div class="hero-media-container">
-        <img id="heroImage" class="hero-media-bg" src="assets/images/ambedkar-deekshabhoomi.jpg"
-          alt="Dr. B. R. Ambedkar at Deekshabhoomi" loading="eager">
+        <video id="heroVideo" class="hero-media-bg" src="assets/videos/lake.mp4" autoplay loop muted playsinline poster="assets/images/ambedkar-deekshabhoomi.jpg"></video>
         <div class="video-scrim"></div>
       </div>
 
@@ -238,15 +241,31 @@
        ========================================================================== -->
   <footer class="site-footer">
     <div class="footer-wrap">
-      <div class="footer-brand">ariya.ex3</div>
+      <div class="footer-brand" id="footerBrandLogo" style="cursor: pointer;" title="Studio Access: Triple Click or Ctrl+Shift+A">ariya.ex3</div>
       <div class="footer-quote">&ldquo;Beyond the edit lies the idea. Beyond the image lies the philosophy.&rdquo;</div>
       <div class="footer-links">
         <a href="https://instagram.com/ariya.ex3" target="_blank" rel="noopener noreferrer">@ariya.ex3</a>
         <a href="https://instagram.com/_chandrakirti" target="_blank" rel="noopener noreferrer">@_chandrakirti</a>
         <a href="https://instagram.com/ariya.aesthetic" target="_blank" rel="noopener noreferrer">@ariya.aesthetic</a>
+        <a href="admin.html" class="footer-admin-link" style="opacity: 0.35; font-size: 0.72rem;">Studio</a>
       </div>
     </div>
   </footer>
+
+  <!-- ==========================================================================
+       Cookie Consent Banner (Session & Aesthetics)
+       ========================================================================== -->
+  <div id="cookieBanner" class="cookie-banner-bar" style="display: none;">
+    <div class="cookie-banner-content">
+      <p class="cookie-banner-text">
+        This archive uses minimal local session cookies to preserve your editorial preferences and aesthetic state. No tracking, ads, or telemetry.
+      </p>
+      <div class="cookie-banner-actions">
+        <button id="dismissCookieBtn" class="cookie-btn cookie-btn-ghost">Decline</button>
+        <button id="acceptCookieBtn" class="cookie-btn cookie-btn-solid">Accept</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 

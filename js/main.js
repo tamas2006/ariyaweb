@@ -5,13 +5,49 @@
 document.addEventListener('DOMContentLoaded', async () => {
   initCookieBanner();
   initHiddenAdminShortcuts();
+  initRealtimeSyncListener();
   await syncDynamicContent();
   initGsapSubtleFade();
   initSmoothScroll();
 });
 
 /* ==========================================================================
-   1. Cookie Consent Banner (Using CookieManager)
+   1. Realtime Cross-Tab Sync Listeners
+   ========================================================================== */
+function initRealtimeSyncListener() {
+  // Listen for BroadcastChannel updates from Studio tab
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      const channel = new BroadcastChannel('ariya_sync_channel');
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === 'DATA_UPDATED') {
+          syncDynamicContent();
+        }
+      };
+    } catch (e) {}
+  }
+
+  // Listen for storage events across tabs
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ariya_last_sync' || e.key === 'ariya_site_config') {
+      syncDynamicContent();
+    }
+  });
+
+  // Re-sync whenever visitor returns to this tab
+  window.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      syncDynamicContent();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    syncDynamicContent();
+  });
+}
+
+/* ==========================================================================
+   2. Cookie Consent Banner (Using CookieManager)
    ========================================================================== */
 function initCookieBanner() {
   const banner = document.getElementById('cookieBanner');
@@ -41,10 +77,9 @@ function initCookieBanner() {
 }
 
 /* ==========================================================================
-   2. Secret Admin Panel Shortcuts (Ctrl+Shift+A & Triple-Click)
+   3. Secret Admin Panel Shortcuts (Ctrl+Shift+A & Triple-Click)
    ========================================================================== */
 function initHiddenAdminShortcuts() {
-  // Key combination: Ctrl + Shift + A
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
       e.preventDefault();
@@ -52,7 +87,6 @@ function initHiddenAdminShortcuts() {
     }
   });
 
-  // Triple-click on footer brand logo
   const footerBrand = document.getElementById('footerBrandLogo');
   if (footerBrand) {
     let clickCount = 0;
@@ -74,7 +108,7 @@ function initHiddenAdminShortcuts() {
 }
 
 /* ==========================================================================
-   3. Dynamic Content Sync (from AriyaDB & LocalStorage)
+   4. Dynamic Content Sync (from AriyaDB & LocalStorage)
    ========================================================================== */
 async function syncDynamicContent() {
   if (!window.AriyaDB) return;
@@ -83,9 +117,10 @@ async function syncDynamicContent() {
     // 1. Sync Hero Video
     const heroPost = await AriyaDB.getHeroVideo();
     const heroVideo = document.getElementById('heroVideo');
-    if (heroPost && heroVideo && heroPost.src) {
-      if (heroVideo.src !== heroPost.src && !heroVideo.src.endsWith(heroPost.src)) {
-        heroVideo.src = heroPost.src;
+    if (heroPost && heroVideo) {
+      const heroUrl = AriyaDB.getMediaUrl(heroPost);
+      if (heroUrl && !heroVideo.src.includes(heroUrl)) {
+        heroVideo.src = heroUrl;
         heroVideo.load();
         heroVideo.play().catch(() => {});
       }
@@ -109,18 +144,31 @@ async function syncDynamicContent() {
     // 3. Sync Video Edits Archive
     const allPosts = await AriyaDB.getAllPosts();
     const videoPosts = allPosts.filter(p => p.type === 'video' && !p.isHero);
+
+    // Custom uploads first (newest to oldest), followed by seed archive edits
+    videoPosts.sort((a, b) => {
+      const aIsCustom = a.id && a.id.startsWith('post-') && !a.id.match(/^post-0[1-6]$/);
+      const bIsCustom = b.id && b.id.startsWith('post-') && !b.id.match(/^post-0[1-6]$/);
+      if (aIsCustom && !bIsCustom) return -1;
+      if (!aIsCustom && bIsCustom) return 1;
+      if (aIsCustom && bIsCustom) return (b.createdAt || 0) - (a.createdAt || 0);
+      return (a.createdAt || 0) - (b.createdAt || 0);
+    });
+
     const grid = document.querySelector('.edits-grid');
 
     if (grid && videoPosts.length > 0) {
       grid.innerHTML = '';
       videoPosts.forEach((post, idx) => {
+        const mediaUrl = AriyaDB.getMediaUrl(post);
         const card = document.createElement('div');
         card.className = 'edit-card';
         card.innerHTML = `
           <div class="edit-video-wrapper">
-            <video src="${post.src}" controls playsinline preload="metadata"></video>
+            <video src="${mediaUrl}" controls playsinline preload="metadata"></video>
           </div>
           <div class="edit-caption">${escapeHtml(post.title || `Edit 0${idx + 1}`)} ${post.category ? `&bull; ${escapeHtml(post.category)}` : ''}</div>
+          ${post.caption ? `<p class="edit-subcaption" style="font-family: var(--font-serif); font-size: 1.05rem; color: var(--color-white-70); line-height: 1.4; margin-top: -0.3rem;">${escapeHtml(post.caption)}</p>` : ''}
         `;
         grid.appendChild(card);
       });
@@ -128,19 +176,24 @@ async function syncDynamicContent() {
 
     // 4. Sync Visual Dhamma Image Posts
     const imagePosts = allPosts.filter(p => p.type === 'image');
+    imagePosts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
     const gallerySection = document.getElementById('gallery');
     const galleryGrid = document.querySelector('.gallery-posts-grid');
+    const navGallery = document.getElementById('navGalleryLink');
 
     if (gallerySection && galleryGrid) {
       if (imagePosts.length > 0) {
         gallerySection.style.display = 'block';
+        if (navGallery) navGallery.style.display = 'inline-block';
         galleryGrid.innerHTML = '';
         imagePosts.forEach(post => {
+          const mediaUrl = AriyaDB.getMediaUrl(post);
           const card = document.createElement('article');
           card.className = 'gallery-post-card';
           card.innerHTML = `
             <div class="gallery-image-wrapper">
-              <img src="${post.src}" alt="${escapeHtml(post.title)}" loading="lazy">
+              <img src="${mediaUrl}" alt="${escapeHtml(post.title)}" loading="lazy">
             </div>
             <h3 class="gallery-post-title">${escapeHtml(post.title)} ${post.category ? `&bull; ${escapeHtml(post.category)}` : ''}</h3>
             ${post.caption ? `<p class="gallery-post-desc">${escapeHtml(post.caption)}</p>` : ''}
@@ -149,6 +202,7 @@ async function syncDynamicContent() {
         });
       } else {
         gallerySection.style.display = 'none';
+        if (navGallery) navGallery.style.display = 'none';
       }
     }
 
@@ -158,7 +212,7 @@ async function syncDynamicContent() {
 }
 
 /* ==========================================================================
-   4. Subtle GSAP & Smooth Scroll
+   5. Subtle GSAP & Smooth Scroll
    ========================================================================== */
 function initGsapSubtleFade() {
   if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
